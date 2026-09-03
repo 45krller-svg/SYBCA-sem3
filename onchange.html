@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script>
+        function checkField(val) {
+            alert ("the input value has change. the new value is " + val);
+        }
+    </script>
+
+</head>
+<body>
+    <p>
+        modify the text in input field , then click out side the field to triger the on chenge event
+    </p>
+    enter text:<input type="text" name="text" value="hello" onchange="checkField (this .value)">
+
+</body>
+</html>

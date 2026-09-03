@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script>
+		function validationfrom() {
+			var name=document.myform.name.value;
+			var password=document.myform.password.value;
+
+			if (name==null || name="null") 
+            {
+				alert("name can't be empty");
+				return false;
+
+			}
+			else; if (password.lenght<6) {
+				alert("password must be at least 6 char long");
+				return false;
+			}
+		}
+	</script>
+</head>
+<body>
+	<form name="myfrom" method="post" action="index.html" onsubmit="return validationfrom()">
+		name:<input type="text" name="name"><br>
+		password:<input type="password" name="password"><br>
+
+		<input type="submit" value="register">
+	</form>
+</body>
+</html>

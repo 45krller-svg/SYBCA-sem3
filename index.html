@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Love Theme</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- MATRIX BACKGROUND RAIN ---
+        const chars = '0123456789ABCDEF♥💕💖';
+        const fontSize = 16;
+        let columns = Math.floor(canvas.width / fontSize);
+        let drops = Array(columns).fill(1);
+
+        function drawMatrixRain() {
+            // Semi-transparent overlay to create trailing rain effect
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#ff3388'; // Pink matrix text color
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        // --- SEQUENCE TIMELINE SETUP ---
+        const sequence = [
+            { type: 'countdown', value: '3', duration: 1500 },
+            { type: 'countdown', value: '2', duration: 1500 },
+            { type: 'countdown', value: '1', duration: 1500 },
+            { type: 'text', value: 'You', duration: 1500 },
+            { type: 'text', value: 'Are', duration: 1500 },
+            { type: 'text', value: 'My', duration: 1500 },
+            { type: 'text', value: 'Love', duration: 2000 },
+            { type: 'heart', value: 'I Love You Sayang', duration: Infinity }
+        ];
+
+        let currentStep = 0;
+        let stepStartTime = Date.now();
+
+        // --- OFF-SCREEN CANVAS FOR PIXEL-PARTICLE RENDER ---
+        function getPixelPoints(text, isHeart = false) {
+            const offCanvas = document.createElement('canvas');
+            const offCtx = offCanvas.getContext('2d');
+            offCanvas.width = 400;
+            offCanvas.height = 400;
+
+            offCtx.fillStyle = '#fff';
+            offCtx.textAlign = 'center';
+            offCtx.textBaseline = 'middle';
+
+            if (isHeart) {
+                // Draw Heart Path
+                offCtx.beginPath();
+                const cx = 200, cy = 180;
+                for (let angle = 0; angle < Math.PI * 2; angle += 0.02) {
+                    const x = 16 * Math.pow(Math.sin(angle), 3);
+                    const y = -(13 * Math.cos(angle) - 5 * Math.cos(2 * angle) - 2 * Math.cos(3 * angle) - Math.cos(4 * angle));
+                    offCtx.lineTo(cx + x * 8, cy + y * 8);
+                }
+                offCtx.fill();
+
+                // Draw Text Inside Heart
+                offCtx.font = 'bold 22px system-ui';
+                offCtx.fillText(text, 200, 180);
+            } else {
+                // Draw Large Text / Numbers
+                offCtx.font = 'bold 120px system-ui';
+                offCtx.fillText(text, 200, 200);
+            }
+
+            const imgData = offCtx.getImageData(0, 0, 400, 400).data;
+            const points = [];
+            const density = isHeart ? 5 : 6; // Grid sampling density
+
+            for (let y = 0; y < 400; y += density) {
+                for (let x = 0; x < 400; x += density) {
+                    const alphaIndex = (y * 400 + x) * 4 + 3;
+                    if (imgData[alphaIndex] > 128) {
+                        points.push({
+                            x: x - 200,
+                            y: y - 200
+                        });
+                    }
+                }
+            }
+            return points;
+        }
+
+        // --- DRAW BRIGHT GLOWING DOT / CLOUD PARTICLES ---
+        function drawOverlayShape(points, isHeart = false) {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            ctx.save();
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = isHeart ? '#ff007f' : '#ffffff';
+            ctx.fillStyle = isHeart ? '#ff66b2' : '#ffffff';
+
+            points.forEach(pt => {
+                // Subtle organic motion/jitter to imitate particle clouds
+                const jitterX = (Math.random() - 0.5) * 1.5;
+                const jitterY = (Math.random() - 0.5) * 1.5;
+
+                ctx.beginPath();
+                ctx.arc(centerX + pt.x + jitterX, centerY + pt.y + jitterY, isHeart ? 2.5 : 3.5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.restore();
+        }
+
+        // Cache pixel maps for each timeline item
+        const pointCache = sequence.map(item => {
+            return getPixelPoints(item.value, item.type === 'heart');
+        });
+
+        // --- MAIN ANIMATION LOOP ---
+        function render() {
+            drawMatrixRain();
+
+            const now = Date.now();
+            const currentItem = sequence[currentStep];
+
+            if (currentItem) {
+                const activePoints = pointCache[currentStep];
+                drawOverlayShape(activePoints, currentItem.type === 'heart');
+
+                if (now - stepStartTime > currentItem.duration) {
+                    if (currentStep < sequence.length - 1) {
+                        currentStep++;
+                        stepStartTime = now;
+                    }
+                }
+            }
+
+            requestAnimationFrame(render);
+        }
+
+        render();
+    </script>
+</body>
+</html>
